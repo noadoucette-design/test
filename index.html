@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Innovation Time: Jacquard Loom</title>
+<style>
+:root{
+  --ink:#2a1a0f; --wood:#4a2f1a; --wood2:#6b4226; --brass:#c08a2e; --brass-l:#e7c16a;
+  --parch:#f4e8cc; --parch2:#e8d6ad; --green:#2f5d3a; --red:#9b2d20; --teal:#2d6a6a;
+  --head:"Rye","Playfair Display",Georgia,"Times New Roman",serif;
+  --body:"Roboto Condensed","Arial Narrow",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--body);color:var(--ink);background:#1d120b;font-size:20px;line-height:1.4}
+button{font-family:var(--body);cursor:pointer}
+button:disabled{cursor:not-allowed}
+.weave{
+  background-color:#d9c196;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(107,66,38,.20) 0 6px,transparent 6px 12px),
+    repeating-linear-gradient(90deg,rgba(74,47,26,.20) 0 6px,transparent 6px 12px);
+}
+.weave-dark{
+  background-color:#3a2414;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(231,193,106,.10) 0 6px,transparent 6px 12px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 6px,transparent 6px 12px);
+}
+#app{max-width:1200px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#d9c196}
+#errbox{display:none;background:#9b2d20;color:#fff;padding:10px 16px;font:14px monospace;white-space:pre-wrap}
+
+/* header */
+#top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 18px;
+  background:linear-gradient(#3b2616,#2a1a0f);border-bottom:4px solid var(--brass);color:var(--parch)}
+.brand{font-family:var(--head);font-size:clamp(15px,2.2vw,22px);letter-spacing:.05em}
+#controls{display:flex;align-items:center;gap:10px}
+.prog{min-width:140px;font-size:14px}
+.bar{height:10px;border-radius:6px;background:#1a0f08;border:1px solid var(--brass);overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brass),var(--brass-l));transition:width .4s}
+.rbtn{width:42px;height:42px;border-radius:50%;border:2px solid var(--brass-l);background:var(--wood2);color:var(--parch);
+  font:700 14px var(--body);display:grid;place-items:center;padding:0}
+.rbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rbtn:hover{background:#8a5a30}
+.rbtn[aria-pressed="false"]{opacity:.5}
+#vol{width:90px;accent-color:var(--brass-l)}
+.volwrap{display:flex;align-items:center;gap:6px}
+:focus-visible{outline:3px solid #1c6fd1;outline-offset:2px}
+
+/* stage */
+#stage{flex:1;padding:22px;outline:none;position:relative;overflow:hidden}
+#stage h2{font-family:var(--head);font-weight:400;font-size:clamp(24px,3.4vw,38px);margin:.1em 0 .3em;color:var(--wood);letter-spacing:.03em}
+.mod{display:inline-block;background:var(--wood);color:var(--brass-l);padding:3px 14px;border-radius:20px;font-size:16px;letter-spacing:.08em;text-transform:uppercase}
+.lead{font-size:22px;margin:.3em 0 .8em}
+.panel{background:var(--parch);border:3px solid var(--wood2);border-radius:14px;padding:16px 22px;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+.two{display:grid;grid-template-columns:1fr 1.25fr;gap:22px;align-items:center}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+.center{text-align:center}
+.avatar{width:100%;max-width:230px;height:auto;display:block;margin:0 auto}
+.wave-arm{transform-origin:150px 150px;animation:wave 1.4s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-22deg)}}
+.small{font-size:16px;opacity:.85}
+
+/* title */
+.titlescreen{margin:-22px;padding:40px 20px;min-height:calc(100vh - 8px);text-align:center;color:var(--parch);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.titlescreen h1{font-family:var(--head);font-weight:400;font-size:clamp(44px,8vw,86px);margin:0;color:var(--brass-l);text-shadow:3px 3px 0 #1a0f08;letter-spacing:.04em}
+.titlescreen h3{font-family:var(--head);font-weight:400;font-size:clamp(28px,5vw,52px);margin:0;text-shadow:2px 2px 0 #1a0f08}
+.kicker{letter-spacing:.2em;text-transform:uppercase;color:var(--brass-l);margin:0}
+.start{font-family:var(--head);font-size:28px;padding:14px 46px;border-radius:10px;border:4px solid var(--brass-l);background:var(--wood2);color:var(--parch);
+  box-shadow:0 6px 0 #1a0f08;margin-top:10px;transition:transform .15s,background .15s}
+.start:hover,.start:focus-visible{background:var(--brass);color:var(--ink);transform:translateY(-2px)}
+.ghost{background:transparent;border:2px solid var(--brass-l);color:var(--parch);padding:8px 20px;border-radius:8px;font-size:18px}
+.teach{font-size:15px;opacity:.85}
+
+/* caption + nav */
+#caption{background:rgba(20,10,5,.95);color:#fff;font-size:21px;text-align:center;padding:12px 24px;min-height:62px;display:flex;align-items:center;justify-content:center}
+#app.nocc #caption{display:none}
+#nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;background:linear-gradient(#2a1a0f,#3b2616);border-top:4px solid var(--brass)}
+.nbtn{font-family:var(--head);font-size:20px;padding:8px 28px;border-radius:6px;border:3px solid var(--brass-l);background:var(--wood2);color:var(--parch);letter-spacing:.05em;box-shadow:0 4px 0 #120a05}
+.nbtn:hover:not(:disabled){background:var(--brass);color:var(--ink)}
+.nbtn:disabled{opacity:.4;box-shadow:none}
+#hint{color:var(--brass-l);font-size:16px;text-align:center;flex:1}
+#app.title #top,#app.title #caption,#app.title #nav{display:none}
+.pulse{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(231,193,106,.9)}50%{box-shadow:0 0 0 10px rgba(231,193,106,0)}}
+
+/* door scene */
+.scene{position:relative;height:340px;max-width:640px;margin:0 auto;border-radius:12px;overflow:hidden;border:6px solid var(--wood);perspective:1000px;background:#caa66b}
+.room{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,#f6dfa6,#b98c4e 70%);display:flex;align-items:flex-end;justify-content:space-around;padding:0 20px}
+.room .avatar{max-width:200px}
+.loomart{height:290px;width:auto;margin-bottom:12px}
+.door{position:absolute;inset:0;z-index:3;transform-origin:left center;transition:transform 1.4s ease;
+  background:repeating-linear-gradient(90deg,#5b3a21 0 38px,#46291a 38px 42px);display:grid;place-items:center;border-right:6px solid #2a1a0f}
+.scene.open .door{transform:rotateY(-105deg)}
+.sign{background:var(--brass-l);color:var(--ink);padding:10px 18px;border:4px solid var(--wood2);font-family:var(--head);font-size:clamp(16px,2.6vw,26px);text-align:center;box-shadow:0 4px 0 rgba(0,0,0,.4)}
+.knob{position:absolute;right:26px;top:55%;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff2b8,#b5832f)}
+.form{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:10px}
+.form input[type=text],.form input[type=number]{font:inherit;font-size:22px;padding:8px 14px;border:3px solid var(--wood2);border-radius:8px;width:230px;background:#fffdf5}
+.abtn{font:700 20px var(--body);padding:9px 22px;border-radius:8px;border:3px solid var(--wood);background:var(--brass-l);color:var(--ink);box-shadow:0 4px 0 var(--wood)}
+.abtn:hover:not(:disabled){background:var(--brass)}
+.abtn:disabled{opacity:.45}
+.fb{min-height:1.5em;font-weight:700;margin:6px 0 0}
+.ok{color:var(--green)} .bad{color:var(--red)}
+
+/* video */
+.video{position:relative;aspect-ratio:16/9;background:#1a0f08;border:5px solid var(--wood);border-radius:10px;overflow:hidden}
+.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vph{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--parch);padding:20px;font-size:18px}
+.vph b{font-size:60px;display:block}
+
+/* weaving widget */
+.wv{background:#3b2616;border:5px solid var(--wood);border-radius:10px;padding:10px;text-align:center}
+.wv svg{width:100%;height:auto;max-height:340px;display:block}
+.wv .row{display:flex;gap:10px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.wv p{color:var(--parch);margin:6px 0 0;min-height:1.4em}
+
+/* vocab */
+.vocab{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0}
+.vbtn{flex:1;min-width:150px;background:var(--green);color:#fff;border:3px solid var(--brass-l);border-radius:12px;padding:12px;font-size:24px;font-family:var(--head);box-shadow:0 5px 0 #173222}
+.vbtn small{display:block;font-family:var(--body);font-size:14px;opacity:.85}
+.vbtn.seen::after{content:" ✓";color:var(--brass-l)}
+.layer{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:50;padding:20px}
+.layer .box{background:var(--green);color:#fff;border:6px solid var(--brass-l);border-radius:16px;max-width:620px;width:100%;padding:28px;text-align:center}
+.layer h3{font-family:var(--head);font-weight:400;font-size:44px;margin:0 0 6px;color:var(--brass-l)}
+.layer p{font-size:26px;margin:8px 0 18px}
+textarea.prompt{width:100%;min-height:90px;font:inherit;padding:10px;border:3px solid var(--wood2);border-radius:8px;background:#fffdf5}
+
+/* punched card demo */
+.pcard{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;background:#e9d29b;border:3px solid var(--wood2);padding:8px;border-radius:6px}
+.cell{aspect-ratio:1;border:2px solid var(--wood2);border-radius:6px;background:#d8bd7e;display:grid;place-items:center;font:700 16px var(--body);padding:0;color:var(--wood)}
+.cell .hole{width:60%;height:60%;border-radius:50%;background:#1a0f08}
+.cell[aria-pressed="false"] .hole{display:none}
+.threads{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;height:90px;align-items:end;margin-top:6px;padding:0 8px}
+.th{height:60px;background:#b5432f;border-radius:4px;transition:transform .3s;position:relative}
+.th.up{transform:translateY(-26px);background:var(--teal)}
+.bin{font-family:monospace;font-size:26px;letter-spacing:.3em;text-align:center;margin:6px 0 0}
+
+/* order puzzle */
+.slots,.tray{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:10px 0}
+@media(max-width:820px){.slots,.tray{grid-template-columns:repeat(2,1fr)}}
+.slot{min-height:150px;border:3px dashed var(--wood2);border-radius:12px;background:rgba(255,255,255,.35);position:relative;padding:22px 6px 6px;font-size:15px;text-align:center;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.slot .num{position:absolute;top:2px;left:8px;font:700 18px var(--head);color:var(--wood)}
+.slot.right{border-color:var(--green);background:rgba(47,93,58,.2)} .slot.wrong{border-color:var(--red);background:rgba(155,45,32,.15)}
+.pz{position:relative;min-height:140px;width:100%;background:var(--parch);border:3px solid var(--wood2);border-radius:12px;padding:8px;font-size:15px;line-height:1.25;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.pz::after{content:"";position:absolute;right:-10px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:var(--parch);border:3px solid var(--wood2);border-left:0}
+.pz .ic{font-size:44px}
+.pz.sel{background:var(--brass-l);transform:translateY(-4px)}
+.slot .pz{box-shadow:none;border:0;background:transparent;min-height:0;padding:0}
+.slot .pz::after{display:none}
+.slot .pz .ic{font-size:30px}
+.tray .ghosttxt{color:var(--wood);align-self:center}
+
+/* portraits */
+.portraits{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.portrait{background:var(--parch);border:4px solid var(--brass);border-radius:14px;padding:10px 14px;text-align:center;width:220px;box-shadow:0 5px 0 rgba(0,0,0,.3);color:var(--ink);transition:transform .15s}
+.portrait:hover,.portrait.active{transform:translateY(-4px);border-color:var(--red)}
+.portrait.seen::after{content:"✓ visited";display:block;font-size:14px;color:var(--green)}
+.portrait svg,.portrait .emo{width:130px;height:150px;display:block;margin:0 auto}
+.portrait .emo{display:grid;place-items:center;font-size:56px;background:var(--wood2);border-radius:50% / 40%;border:4px solid var(--brass)}
+.portrait b{display:block;font-size:20px}
+.portrait span{font-size:15px}
+.info{font-size:22px;min-height:100px}
+.era{display:inline-block;font-size:14px;background:var(--wood);color:var(--brass-l);padding:2px 10px;border-radius:12px;margin-right:8px}
+.tl{display:flex;justify-content:space-between;gap:6px;margin:12px 0;position:relative;padding-top:16px}
+.tl::before{content:"";position:absolute;left:2%;right:2%;top:8px;height:4px;background:var(--wood2)}
+.tl div{flex:1;text-align:center;font-size:14px;position:relative}
+.tl div::before{content:"";position:absolute;left:50%;top:-14px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--brass);border:3px solid var(--wood)}
+.tl div.me::before{background:var(--red)}
+.tl b{display:block;font-size:17px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.col{opacity:.45;transition:opacity .4s}
+.col.show{opacity:1}
+.concl{opacity:0;transition:opacity .5s;margin-top:16px}
+.concl.show{opacity:1}
+.code{font-family:monospace;background:#1a0f08;color:#7fe08f;border-radius:8px;padding:10px 14px;font-size:16px;margin-top:10px}
+
+/* banner */
+.banner{display:none;text-align:center;background:var(--green);color:#fff;border:6px solid var(--brass-l);border-radius:16px;padding:18px;margin:18px auto 0;max-width:640px}
+.banner.show{display:block;animation:pop .6s}
+.banner h3{font-family:var(--head);font-weight:400;font-size:36px;margin:0;color:var(--brass-l)}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:10px 14px;align-items:center;font-size:20px}
+.legend .rbtn,.legend .nbtn{pointer-events:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="errbox"></div>
+<div id="app" class="title">
+  <header id="top">
+    <div class="brand">Innovation Time ~ Jacquard Loom</div>
+    <div id="controls">
+      <div class="prog"><span id="progtxt">Page 1</span><div class="bar"><i id="barfill"></i></div></div>
+      <button class="rbtn" id="btnCC" aria-pressed="true" title="Captions on/off" aria-label="Captions on or off">CC</button>
+      <div class="volwrap">
+        <button class="rbtn" id="btnVol" aria-pressed="true" title="Mute / unmute" aria-label="Mute or unmute">
+          <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+        </button>
+        <input type="range" id="vol" min="0" max="100" value="80" aria-label="Volume">
+      </div>
+      <button class="rbtn" id="btnRep" title="Repeat instructions" aria-label="Repeat instructions">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="stage" class="weave" tabindex="-1"><p style="padding:30px;color:#2a1a0f">Loading lesson… If this message stays, JavaScript is blocked in your browser or viewer.</p></main>
+  <div id="caption" aria-label="Captions"></div>
+  <footer id="nav">
+    <button class="nbtn" id="btnBack">Back</button>
+    <div id="hint"></div>
+    <button class="nbtn" id="btnNext">Next</button>
+  </footer>
+</div>
+<noscript><p style="color:#fff;padding:20px">This lesson needs JavaScript turned on.</p></noscript>
+
+<script>
+/* Show any script error on the page instead of failing silently */
+window.addEventListener('error', function(e){
+  var b = document.getElementById('errbox');
+  if(b){ b.style.display = 'block'; b.textContent += 'Script error: ' + e.message + ' (line ' + e.lineno + ')\n'; }
+});
+</script>
+<script>
+/* ============ CONFIG: paste your YouTube links here ============ */
+const CONFIG = {
+  videos: {
+    weaving:   "",   // Page 1.1 – e.g. "https://www.youtube.com/watch?v=XXXXXXXXXXX"
+    punchcard: ""    // Page 2.1 – "Binary and the Jacquard Mechanism"
+  },
+  currentYear: 2026,
+  inventionYear: 1804
+};
+
+/* ============ STATE ============ */
+const S = {idx:0, name:"", welcome:0, mathOk:false, vocab:new Set(), clicked:new Set(),
+           ordered:false, volume:.8, lastVol:.8, cc:true, unlock:false};
+const $ = s => document.querySelector(s);
+const app = $('#app'), stage = $('#stage');
+let timers = [];
+const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
+const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+const store = {
+  get(){ try{ return JSON.parse(localStorage.getItem('jacq-progress')||'null'); }catch(e){ return null; } },
+  set(v){ try{ localStorage.setItem('jacq-progress', JSON.stringify(v)); }catch(e){} }
+};
+
+/* ============ SOUND EFFECTS (synthesized placeholders) ============ */
+let AC = null;
+function ac(){
+  if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(f, t0, dur, type='sine', g=.2, f2){
+  const c = ac(); if(!c || S.volume <= 0) return;
+  const o = c.createOscillator(), gn = c.createGain(), t = c.currentTime + t0;
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if(f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  gn.gain.setValueAtTime(g * S.volume, t);
+  gn.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(gn); gn.connect(c.destination); o.start(t); o.stop(t + dur + .05);
+}
+function noise(t0, dur, g=.15, freq=1500){
+  const c = ac(); if(!c || S.volume <= 0) return;
+  const len = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * (1 - i/len);
+  const src = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain(), t = c.currentTime + t0;
+  f.type = 'bandpass'; f.frequency.value = freq; gn.gain.value = g * S.volume;
+  src.buffer = buf; src.connect(f); f.connect(gn); gn.connect(c.destination); src.start(t);
+}
+const SFX = {
+  click(){ try{ tone(520,0,.08,'square',.07); tone(780,.05,.08,'square',.05); }catch(e){} },
+  knock(){ try{ [0,.35,.7].forEach(t => tone(140,t,.2,'sine',.6,60)); }catch(e){} },
+  creak(){ try{ tone(180,0,1.1,'sawtooth',.05,90); }catch(e){} },
+  thud(){ try{ tone(100,0,.35,'sine',.7,40); }catch(e){} },
+  bell(){ try{ [0,1.3].forEach(t => { tone(660,t,1.5,'sine',.12); tone(990,t,1,'sine',.05); }); }catch(e){} },
+  loom(){ try{ for(let i=0;i<6;i++){ noise(i*.22,.08,.25,2200); noise(i*.22+.11,.06,.15,900); } }catch(e){} },
+  success(){ try{ [523,659,784,1047].forEach((f,i) => tone(f,i*.12,.4,'triangle',.18)); }catch(e){} },
+  wrong(){ try{ tone(170,0,.25,'sawtooth',.08); }catch(e){} }
+};
+document.addEventListener('click', e => { const b = e.target.closest('button'); if(b && !b.disabled) SFX.click(); });
+
+/* ============ NARRATION + CAPTIONS ============ */
+let NT = 0;
+const canSpeak = () => 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+function pickVoice(){
+  if(!canSpeak()) return null;
+  const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+  return vs.find(v => /daniel|david|alex|male/i.test(v.name)) || vs.find(v => /en[-_](US|GB)/i.test(v.lang)) || vs[0] || null;
+}
+function setCaption(t){ $('#caption').textContent = t || ''; }
+function stopNarr(){ NT++; if(canSpeak()) speechSynthesis.cancel(); setCaption(''); }
+function splitSentences(t){ return t.match(/[^.!?]+[.!?]+["”’)]*\s*|[^.!?]+$/g) || [t]; }
+function narrate(input, onDone){
+  stopNarr();
+  if(!input) return;
+  const segs = (Array.isArray(input) ? input : [input]).map(x => typeof x === 'string' ? {text:x} : x);
+  const token = NT, queue = [];
+  segs.forEach(s => splitSentences(s.text).forEach((sent,k) => queue.push({sent:sent.trim(), on:k===0 ? s.on : null})));
+  let i = 0;
+  const next = () => {
+    if(token !== NT) return;
+    if(i >= queue.length){ setCaption(''); if(onDone) onDone(); return; }
+    const q = queue[i++];
+    if(q.on) q.on();
+    setCaption(q.sent);
+    let done = false, wd;
+    const adv = () => { if(done || token !== NT) return; done = true; clearTimeout(wd); next(); };
+    const words = q.sent.split(/\s+/).length;
+    if(canSpeak() && S.volume > 0){
+      try{
+        const u = new SpeechSynthesisUtterance(q.sent);
+        u.lang = 'en-US'; u.rate = .95; u.pitch = .9; u.volume = Math.min(1, S.volume);
+        const v = pickVoice(); if(v) u.voice = v;
+        u.onend = adv; u.onerror = adv;
+        speechSynthesis.speak(u);
+      }catch(e){}
+      wd = setTimeout(adv, words*650 + 4000);
+    } else {
+      wd = setTimeout(adv, Math.max(1800, words*400));
+    }
+  };
+  next();
+}
+
+/* ============ ART ============ */
+function jacquardSVG(wave=true){
+  return `<svg class="avatar" viewBox="0 0 200 260" role="img" aria-label="Joseph Marie Jacquard, an 1800s French weaver with gray hair and a brown coat">
+  <ellipse cx="100" cy="252" rx="70" ry="7" fill="rgba(0,0,0,.25)"/>
+  <path d="M42 250 L50 152 Q100 122 150 152 L158 250 Z" fill="#5a3a22"/>
+  <path d="M78 140 L100 236 L122 140 Z" fill="#e8dcc0"/>
+  <path d="M86 136 L100 164 L114 136 Z" fill="#fff"/>
+  <circle cx="100" cy="190" r="3.5" fill="#8a5a30"/><circle cx="100" cy="208" r="3.5" fill="#8a5a30"/><circle cx="100" cy="226" r="3.5" fill="#8a5a30"/>
+  <circle cx="100" cy="96" r="38" fill="#f0c9a0"/>
+  <path d="M60 96 Q58 44 100 44 Q142 44 140 96 Q132 66 100 66 Q68 66 60 96Z" fill="#d4d4d4"/>
+  <circle cx="58" cy="108" r="11" fill="#d4d4d4"/><circle cx="142" cy="108" r="11" fill="#d4d4d4"/>
+  <circle cx="86" cy="96" r="4" fill="#2a1a0f"/><circle cx="114" cy="96" r="4" fill="#2a1a0f"/>
+  <path d="M82 86 Q86 82 92 85 M108 85 Q114 82 118 86" stroke="#9a9a9a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M86 116 Q100 128 114 116" stroke="#8a4a2a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <g class="${wave ? 'wave-arm' : ''}"><path d="M150 152 L186 112" stroke="#5a3a22" stroke-width="20" stroke-linecap="round"/><circle cx="190" cy="106" r="12" fill="#f0c9a0"/></g>
+  </svg>`;
+}
+function loomArt(){
+  let lines = '';
+  for(let x=32;x<=188;x+=12) lines += `<line x1="${x}" y1="24" x2="${x}" y2="236" stroke="#efe3c4" stroke-width="3"/>`;
+  return `<svg class="loomart" viewBox="0 0 220 260" aria-hidden="true">
+    <rect x="10" y="10" width="200" height="14" fill="#4a2f1a"/><rect x="10" y="236" width="200" height="14" fill="#4a2f1a"/>
+    <rect x="10" y="10" width="14" height="240" fill="#4a2f1a"/><rect x="196" y="10" width="14" height="240" fill="#4a2f1a"/>
+    ${lines}<rect x="24" y="110" width="172" height="9" fill="#b5432f"/><rect x="24" y="140" width="172" height="9" fill="#2d6a6a"/></svg>`;
+}
+function doorScene(open, inner=''){
+  return `<div class="scene ${open ? 'open' : ''}" id="scene" role="img" aria-label="A workshop door with the sign Atelier De Mécanique">
+    <div class="room">${loomArt()}${jacquardSVG(true)}</div>
+    <div class="door"><div class="sign">Atelier De Mécanique</div><div class="knob"></div></div></div>${inner}`;
+}
+function videoBox(key, title){
+  const url = CONFIG.videos[key] || '';
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+  if(m) return `<div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${m[1]}" title="${title}" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
+  return `<div class="video"><div class="vph"><div><b>▶</b>Video placeholder: ${title}<br><span class="small">Add the YouTube link to CONFIG.videos.${key} at the top of the script.</span></div></div></div>`;
+}
+
+/* ============ INTERACTIVE WIDGETS ============ */
+function weaveWidget(root){
+  const W = 12, R = 10, gap = 34, x0 = 30, y0 = 34, rh = 30;
+  const width = x0*2 + (W-1)*gap, height = y0*2 + (R-1)*rh;
+  const colors = ['#b5432f','#2d9a9a','#e7c16a','#a06ac0'];
+  let warps = '';
+  for(let i=0;i<W;i++) warps += `<line x1="${x0+i*gap}" y1="8" x2="${x0+i*gap}" y2="${height-8}" stroke="#efe3c4" stroke-width="7" stroke-linecap="round"/>`;
+  root.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Animated weaving: weft threads going over and under warp threads">
+    <defs id="defs"></defs>${warps}<g id="wefts"></g>
+    <text x="${x0}" y="${height-1}" fill="#e7c16a" font-size="13" font-family="sans-serif">warp ↕ (up and down)</text>
+    <text x="${width-x0}" y="${height-1}" fill="#e7c16a" font-size="13" font-family="sans-serif" text-anchor="end">weft ↔ (side to side)</text></svg>
+    <div class="row"><button class="abtn" id="shuttle">Throw the shuttle ➜</button><button class="abtn" id="wreset">Start over</button></div>
+    <p id="wmsg">Click the button to pass the weft over and under the warp.</p>`;
+  let r = 0, busy = false;
+  const svg = root.querySelector('svg'), wefts = root.querySelector('#wefts'), defs = root.querySelector('#defs');
+  const msg = root.querySelector('#wmsg');
+  root.querySelector('#wreset').onclick = () => { wefts.innerHTML = ''; defs.innerHTML = ''; r = 0; msg.textContent = 'Click the button to pass the weft over and under the warp.'; };
+  root.querySelector('#shuttle').onclick = () => {
+    if(busy) return;
+    if(r >= R){ msg.textContent = 'Your fabric is finished! Press “Start over” to weave again.'; return; }
+    busy = true; SFX.loom();
+    const y = y0 + r*rh, col = colors[r % colors.length], rr = r, id = 'clip' + r + '_' + Date.now();
+    const x1 = x0 - 16, x2 = x0 + (W-1)*gap + 16;
+    defs.insertAdjacentHTML('beforeend', `<clipPath id="${id}"><rect id="${id}r" x="0" y="${y-14}" width="0" height="28"/></clipPath>`);
+    let segs = '';
+    for(let i=0;i<W;i++) if((i + rr) % 2 === 0) segs += `<line x1="${x0+i*gap}" y1="${y-10}" x2="${x0+i*gap}" y2="${y+10}" stroke="#efe3c4" stroke-width="7" stroke-linecap="round"/>`;
+    wefts.insertAdjacentHTML('beforeend', `<g clip-path="url(#${id})"><line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${col}" stroke-width="9" stroke-linecap="round"/>${segs}</g>`);
+    const rect = svg.querySelector('#' + id + 'r'), t0 = performance.now();
+    const step = now => {
+      const p = Math.min(1, (now - t0) / 700);
+      rect.setAttribute('width', p * width);
+      if(p < 1) requestAnimationFrame(step); else { busy = false; r++; if(r >= R){ msg.textContent = 'Over, under, over, under: the threads interlace and hold together!'; SFX.success(); } }
+    };
+    requestAnimationFrame(step);
+  };
+}
+function punchDemo(root){
+  const N = 8, cells = Array(N).fill(false);
+  root.innerHTML = `<div class="pcard" id="pc"></div><div class="threads" id="th"></div><div class="bin" id="bin"></div>
+    <p class="small center" style="margin:6px 0 0">Click the squares to punch holes. <b>Hole = 1 = thread lifts.</b> No hole = 0 = thread stays down.</p>`;
+  const pc = root.querySelector('#pc'), th = root.querySelector('#th'), bin = root.querySelector('#bin');
+  const draw = () => {
+    pc.innerHTML = ''; th.innerHTML = '';
+    cells.forEach((v,i) => {
+      const b = document.createElement('button');
+      b.className = 'cell'; b.setAttribute('aria-pressed', v); b.setAttribute('aria-label', `Position ${i+1}: ${v ? 'hole' : 'no hole'}`);
+      b.innerHTML = '<span class="hole"></span>';
+      b.onclick = () => { cells[i] = !cells[i]; draw(); };
+      pc.appendChild(b);
+      const d = document.createElement('div'); d.className = 'th' + (v ? ' up' : ''); th.appendChild(d);
+    });
+    bin.textContent = cells.map(v => v ? 1 : 0).join(' ');
+  };
+  draw();
+}
+
+/* ============ ORDER PUZZLE DATA ============ */
+const STEPS = [
+  {icon:'🃏', desc:'A set of punched cards is made for one specific pattern.'},
+  {icon:'🦶', desc:'The weaver pumps the pedal to give the loom energy. There is no electricity!'},
+  {icon:'🔍', desc:'The loom “reads” a card. Where there is a hole, the thread is lifted. Where the card is solid, the thread stays down.'},
+  {icon:'🧵', desc:'The weaver throws the shuttle across the warp threads, then pulls the beater to make the threads snug.'},
+  {icon:'🔁', desc:'The loom automatically moves to the next card and repeats the process.'}
+];
+
+/* ============ INVENTORS ============ */
+const INV = {
+  falcon:{name:'Jean-Baptiste Falcon', sub:'Weaver · 1728', era:'Before Jacquard', art:'JF', color:'#6b4226',
+    text:'Jean-Baptiste Falcon was a weaver who made his own loom with punched cards. When Jacquard saw his work, he knew he could improve on it.'},
+  lovelace:{name:'Ada Lovelace & Charles Babbage', sub:'Mathematician & inventor · 1840s', era:'After Jacquard', art:'AL·CB', color:'#2d6a6a',
+    text:'Ada Lovelace and Charles Babbage worked together to propose how a punched card system could be used to “program” a machine to do calculations. Ada Lovelace, a mathematician, is credited with writing the first computer code.'},
+  hollerith:{name:'Herman Hollerith', sub:'Census inventor · 1890', era:'After Jacquard', art:'HH', color:'#7a3b2a',
+    text:'Herman Hollerith had to count all the people living in the U.S. in 1890 and track information like whether they were married or their race. He used a punched card for each person and fed the cards into a machine that kept track of the different totals.'},
+  ibm:{name:'IBM × NASA', sub:'Space-age computing · 1960s', era:'After Jacquard', emoji:'🖥️🚀',
+    text:'IBM computers used thousands of punch cards for NASA scientists to calculate complex math equations. This helped them figure out landing paths and orbital flight information, eventually helping send the first people to the Moon.'}
+};
+const CONCL = 'Eventually these physical cards changed into digital data, but computers are still programmed. Remember how you learned that when a punched card set was made for a loom, it took many cards to describe the pattern line by line? The same is true for computer code. The only difference is that the code is stored electronically.';
+function portraitBtn(id, onClick){
+  const p = INV[id], b = document.createElement('button');
+  b.className = 'portrait' + (S.clicked.has(id) ? ' seen' : ''); b.dataset.id = id;
+  const art = p.emoji ? `<div class="emo" aria-hidden="true">${p.emoji}</div>` :
+    `<svg viewBox="0 0 130 150" aria-hidden="true"><ellipse cx="65" cy="75" rx="60" ry="70" fill="${p.color}" stroke="#c08a2e" stroke-width="5"/><circle cx="65" cy="58" r="25" fill="#f0c9a0"/><path d="M20 130 Q65 80 110 130 Q65 150 20 130Z" fill="#2a1a0f"/><text x="65" y="62" font-size="14" text-anchor="middle" fill="#2a1a0f" font-family="serif" font-weight="bold">${p.art}</text></svg>`;
+  b.innerHTML = `${art}<b>${p.name}</b><span>${p.sub}</span>`;
+  b.onclick = () => onClick(id, b);
+  return b;
+}
+function timeline(){
+  const it = [['1728','Falcon'],['1804','Jacquard loom','me'],['1840s','Lovelace & Babbage'],['1890','Hollerith'],['1960s','IBM & NASA']];
+  return `<div class="tl" aria-label="Timeline of punched card inventions">${it.map(x => `<div class="${x[2]||''}"><b>${x[0]}</b>${x[1]}</div>`).join('')}</div>`;
+}
+
+/* ============ NARRATION TEXT ============ */
+const T = {
+  nav:"Welcome to this interactive lesson! In just a moment you’re going to meet a very special guest! But before we go to his shop, we need to discuss how to use this lesson. There are 3 quick modules you will complete. Your progress will be saved as you advance and will be shown in the right corner. If you would like to turn on or off the captions, select this button. If you would like to adjust the volume or background music, change it here. To click forward or backward in the lesson, click these buttons. If you would like to hear instructions repeated, select this button. That should be everything! You can adjust these settings at any point in the lesson. When you’re ready, go ahead and click the next button.",
+  w0:"“Come in, come in!” Welcome to my workshop! What’s your name?",
+  w1:n => `Nice to meet you, ${n}! My name is Joseph Marie Jacquard, and I made a machine to make weaving easier and faster. Weaving is how we make fabric for our clothes! Shirts don’t just grow on trees. We collect fluffy cotton from plants and weave the threads to make fabric for shirts, pants, and other clothes. I completed my invention in ${CONFIG.inventionYear}. Let’s do some math. What is ${CONFIG.currentYear} minus ${CONFIG.inventionYear}?`,
+  w2:`That’s right! ${CONFIG.currentYear} minus ${CONFIG.inventionYear} equals ${CONFIG.currentYear-CONFIG.inventionYear}. I made my invention ${CONFIG.currentYear-CONFIG.inventionYear} years ago! My invention didn’t use any electricity. However, it is the inspiration for modern computers. You heard that right: my ${CONFIG.currentYear-CONFIG.inventionYear}-year-old invention inspired the technology for the computer you are currently using. I have a lot to teach you, and maybe you’ll get the inspiration for your own invention. So let’s get started. Click next.`,
+  m1:"In this module you will learn to explain how warp and weft interlace to form fabric.",
+  b11:"I want you to look at your clothing. Really look closely. Did you know your clothes are woven with tiny strands of cotton or synthetic material to make a solid shirt? In 2026, almost all weaving is done with a machine, but for most of human history, people had to weave by hand using looms. Watch this video, the whole video, to learn how the weaving process works. Then take a minute to explain to yourself how weaving works, using the new vocabulary words you learned: weft, warp, and loom. Select next when you are ready to move on.",
+  b12:"So let’s review. The “warp” is the long vertical strands, and the weft are the strands that go back and forth, changing the color. We couldn’t just lay the weft on top of the warp, or else they wouldn’t hold together. We have to weave the weft above and below the warp on a loom to make a sturdy piece of fabric. During my time, master weavers would use draw looms to make beautiful woven fabrics for very wealthy people to wear, and to make things for their homes like sofas and cushions. To do this work, a master weaver would work with a draw boy, a boy or girl normally around 10 years old who would stand at the top of the loom and manually lift the warp threads. It was a lot of work. I worked as a draw boy 14 to 17 hours a day. The work was very difficult, long, and dangerous. That is why I wanted to invent a better way. Click next to see how my machine worked.",
+  m2:"In this module you will learn to explain how the punched card system controls lifting and lowering warp threads to reproduce intricate patterns without needing a draw boy.",
+  b21:"You must be wondering how this all worked. Well, I used a punched card system that “told” the loom when to lift or lower warp threads. It’s pretty cool technology! Watch this video to get a clear explanation. Did you notice there is no electricity in my loom? The weaver pushes a pedal to provide energy, and the momentum keeps the machine moving. Click the next button to learn more about my machine.",
+  b22:"I have a challenge for you! I want you to show how my punched card system works by putting the steps in order. Click a puzzle piece to read it, then click a numbered spot to place it. If you need a little reminder, you can click the back button and review the video again before you try my challenge!",
+  m3:"In this module you will learn to explain how inventors draw inspiration from existing ideas to develop new innovations.",
+  b31a:"The punched card system I put on looms was not my own original invention. Actually, I learned about that technology from another weaver named Jean-Baptiste Falcon, who made his own loom with punched cards. When I saw his work, I knew I could improve on his invention. Many of the greatest inventions today were just improvements on available technology or knowledge. I was inspired by Falcon, and after my loom was used all over France, Britain, and the United States, it inspired other people to improve upon and imagine new uses for the punched card system. Go ahead and click on these inventors to learn a little about their inventions.",
+  close:"In this lesson you learned how to explain how warp and weft interlace to form fabric. You learned how the punched card system controls lifting and lowering warp threads to reproduce intricate patterns without needing a draw boy. And you learned how inventors draw inspiration from existing ideas to develop new innovations. I enjoyed sharing my story with you today, and I hope you learned something valuable. Until next time. Goodbye!"
+};
+const VOCAB = {
+  Warp:'Threads of yarn are hung vertically.',
+  Weft:'A thread passed horizontally across the warp threads.',
+  Loom:'A piece of equipment used for weaving yarn into fabric.'
+};
+
+/* ============ SLIDES ============ */
+const SL = [];
+let puz = null;
+
+// 0.1 Title
+SL.push({label:'Title', narr:()=>null, gate:()=>true,
+  render(r){
+    const saved = store.get();
+    r.innerHTML = `<div class="titlescreen weave-dark">
+      <p class="kicker">A lesson for 5th grade · about 30–45 minutes</p>
+      <h1>Innovation Time</h1><h3>Jacquard Loom</h3>
+      <div style="width:150px">${jacquardSVG(true)}</div>
+      <button class="start" id="startBtn">Start Game</button>
+      ${saved && saved.idx > 1 ? '<button class="ghost" id="contBtn">Continue where I left off</button>' : ''}
+      <label class="teach"><input type="checkbox" id="unlock"> Reviewer mode: unlock the Next button on every page</label>
+      <p class="small">Turn your sound on. Narration uses your browser’s built-in voice.</p></div>`;
+    $('#startBtn').onclick = () => { S.unlock = $('#unlock').checked; SFX.loom(); S.name = ''; goTo(1); };
+    const c = $('#contBtn');
+    if(c) c.onclick = () => { S.unlock = $('#unlock').checked; S.name = saved.name || ''; S.mathOk = !!saved.name; S.welcome = saved.name ? 2 : 0; SFX.loom(); goTo(saved.idx); };
+  }});
+
+// 0.2 Intro and navigation
+SL.push({label:'Navigation', narr:()=>T.nav, gate:()=>true,
+  render(r){
+    r.innerHTML = `<span class="mod">Welcome</span><h2>How to use this lesson</h2>
+      <div class="two"><div>${jacquardSVG(true)}</div>
+      <div class="panel"><div class="legend">
+        <span class="rbtn">CC</span><span><b>Captions:</b> turn the words on or off.</span>
+        <span class="rbtn"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M16 8.5a5 5 0 0 1 0 7"/></svg></span><span><b>Volume:</b> mute, or slide to change the sound.</span>
+        <span class="rbtn"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></span><span><b>Repeat:</b> hear the instructions again.</span>
+        <span class="nbtn">Back</span><span><b>Back:</b> go to the page before.</span>
+        <span class="nbtn">Next</span><span><b>Next:</b> go to the next page.</span>
+        <span class="rbtn" style="width:60px;border-radius:20px;font-size:12px">▮▮▯▯</span><span><b>Progress bar:</b> shows how far you are. It saves as you go!</span>
+      </div></div></div>`;
+    document.querySelectorAll('#controls .rbtn,#controls .prog,#btnBack,#btnNext').forEach(e => e.classList.add('pulse'));
+    later(() => document.querySelectorAll('.pulse').forEach(e => e.classList.remove('pulse')), 9000);
+  }});
+
+// 0.3 Welcome
+const welcomeText = () => S.welcome === 0 ? T.w0 : S.welcome === 1 ? T.w1(S.name) : T.w2;
+SL.push({label:'Welcome', delay:3400, narr:welcomeText, gate:()=>S.mathOk,
+  hint:'Enter your name and solve the math problem to continue.',
+  render(r){
+    if(S.name){ S.welcome = S.mathOk ? 2 : 1; } else { S.welcome = 0; S.mathOk = false; }
+    r.innerHTML = `<span class="mod">Welcome</span>${doorScene(false, '<div class="panel" id="wp" style="margin-top:16px"></div>')}`;
+    SFX.bell();
+    later(() => SFX.knock(), 700);
+    later(() => { SFX.creak(); const sc = $('#scene'); if(sc) sc.classList.add('open'); }, 2200);
+    drawWelcome();
+  }});
+function drawWelcome(){
+  const wp = $('#wp'); if(!wp) return;
+  if(S.welcome === 0){
+    wp.innerHTML = `<div class="center"><b>Type your first name:</b><div class="form"><input type="text" id="nm" maxlength="20" autocomplete="off" aria-label="Your first name"><button class="abtn" id="nmGo">Meet Jacquard</button></div><p class="small" style="margin:6px 0 0">Your name stays on this device.</p></div>`;
+    const go = () => {
+      const v = $('#nm').value.trim().slice(0,20); if(!v){ $('#nm').focus(); return; }
+      S.name = v; S.welcome = 1; drawWelcome(); narrate(welcomeText()); updateNav();
+    };
+    $('#nmGo').onclick = go; $('#nm').onkeydown = e => { if(e.key === 'Enter') go(); };
+  } else if(S.welcome === 1){
+    wp.innerHTML = `<div class="center"><p style="margin:0"><b>Nice to meet you, <span id="nn"></span>!</b> I made my invention in ${CONFIG.inventionYear}.</p>
+      <p class="lead" style="margin:6px 0"><b>${CONFIG.currentYear} − ${CONFIG.inventionYear} = ?</b></p>
+      <div class="form"><input type="number" id="mt" aria-label="Answer to ${CONFIG.currentYear} minus ${CONFIG.inventionYear}"><button class="abtn" id="mtGo">Check</button></div><p class="fb" id="fb"></p></div>`;
+    $('#nn').textContent = S.name;
+    const go = () => {
+      const v = parseInt($('#mt').value, 10), ans = CONFIG.currentYear - CONFIG.inventionYear;
+      if(v === ans){ S.mathOk = true; S.welcome = 2; SFX.success(); drawWelcome(); narrate(welcomeText()); updateNav(); }
+      else { SFX.wrong(); $('#fb').className = 'fb bad'; $('#fb').textContent = 'Not quite. Try subtracting again. Hint: 2026 − 1800 = 226, then take away 4 more.'; }
+    };
+    $('#mtGo').onclick = go; $('#mt').onkeydown = e => { if(e.key === 'Enter') go(); };
+  } else {
+    wp.innerHTML = `<div class="center"><p class="lead ok" style="margin:0">✔ ${CONFIG.currentYear} − ${CONFIG.inventionYear} = ${CONFIG.currentYear-CONFIG.inventionYear}. My invention is ${CONFIG.currentYear-CONFIG.inventionYear} years old!</p><p style="margin:6px 0 0">Click <b>Next</b> to begin Module 1.</p></div>`;
+  }
+}
+
+// Module 1 objective
+SL.push({label:'Module 1', narr:()=>T.m1, gate:()=>true,
+  render(r){ r.innerHTML = `<div class="center"><span class="mod">Learning objective 1</span><h2>Module 1: The Draw Loom</h2>
+    <div class="panel" style="max-width:760px;margin:20px auto"><p class="lead" style="margin:0">Explain how warp and weft interlace to form fabric.</p></div>
+    <div style="width:180px;margin:auto">${jacquardSVG(true)}</div></div>`; }});
+
+// 1.1 Weaving basics
+SL.push({label:'Weaving Basics', narr:()=>T.b11, gate:()=>S.vocab.size >= 3, hint:'Click all three vocabulary words to continue.',
+  render(r){
+    r.innerHTML = `<span class="mod">Module 1 · Weaving basics</span><h2>What is weaving?</h2>
+      <div class="two"><div>${videoBox('weaving','How weaving works')}<div style="margin-top:12px" class="wv" id="wv"></div></div>
+      <div><div class="panel"><b>New vocabulary:</b> click each word.
+        <div class="vocab">${Object.keys(VOCAB).map(w => `<button class="vbtn ${S.vocab.has(w)?'seen':''}" data-w="${w}">${w}<small>click to learn</small></button>`).join('')}</div></div>
+        <div class="panel" style="margin-top:14px"><b>Think it through:</b> Explain to yourself how weaving works using the words <i>warp</i>, <i>weft</i>, and <i>loom</i>.
+        <textarea class="prompt" aria-label="Your explanation (optional, stays on this device)" placeholder="Type your explanation here (optional)…" style="margin-top:8px"></textarea></div></div></div>`;
+    weaveWidget($('#wv'));
+    r.querySelectorAll('.vbtn').forEach(b => b.onclick = () => openVocab(b.dataset.w, b));
+  }});
+function openVocab(w, btn){
+  S.vocab.add(w); btn.classList.add('seen');
+  const L = document.createElement('div'); L.className = 'layer'; L.setAttribute('role','dialog'); L.setAttribute('aria-modal','true'); L.setAttribute('aria-label', w);
+  L.innerHTML = `<div class="box"><h3>${w}</h3><p>${VOCAB[w]}</p><button class="abtn" id="vx">Got it</button></div>`;
+  document.body.appendChild(L);
+  const close = () => { L.remove(); updateNav(); btn.focus(); };
+  L.querySelector('#vx').onclick = close; L.querySelector('#vx').focus();
+  L.onkeydown = e => { if(e.key === 'Escape') close(); };
+  narrate(`${w}. ${VOCAB[w]}`);
+  updateNav();
+}
+
+// 1.2 Review
+SL.push({label:'Review', narr:()=>T.b12, gate:()=>true,
+  render(r){ r.innerHTML = `<div class="center"><span class="mod">Module 1 · Review</span><h2>Warp, weft, and the draw boy</h2>
+    <div style="max-width:300px;margin:auto">${jacquardSVG(true)}</div>
+    <div class="panel" style="max-width:820px;margin:16px auto;text-align:left"><b>Remember:</b>
+    <ul style="margin:6px 0 0;padding-left:22px"><li><b>Warp</b> = long threads that hang up and down.</li><li><b>Weft</b> = threads that go side to side, over and under the warp.</li><li>A <b>draw boy</b> or <b>draw girl</b> climbed the loom and lifted warp threads by hand.</li></ul></div></div>`; }});
+
+// Module 2 objective (added)
+SL.push({label:'Module 2', narr:()=>T.m2, gate:()=>true,
+  render(r){ r.innerHTML = `<div class="center"><span class="mod">Learning objective 2</span><h2>Module 2: The Punched Cards</h2>
+    <div class="panel" style="max-width:760px;margin:20px auto"><p class="lead" style="margin:0">Explain how the punched card system controls lifting and lowering warp threads to reproduce intricate patterns without needing a draw boy.</p></div>
+    <div style="width:180px;margin:auto">${jacquardSVG(true)}</div></div>`; }});
+
+// 2.1 Video + punch demo
+SL.push({label:'Punched Cards', narr:()=>T.b21, gate:()=>true,
+  render(r){
+    r.innerHTML = `<span class="mod">Module 2 · Punched cards</span><h2>Binary and the Jacquard Mechanism</h2>
+      <div class="two"><div>${videoBox('punchcard','Binary and the Jacquard Mechanism')}</div>
+      <div class="panel"><b>Try it: punch your own card!</b><div id="pd" style="margin-top:10px"></div></div></div>`;
+    punchDemo($('#pd'));
+  }});
+
+// 2.2 Order the steps
+SL.push({label:'Order the Steps', narr:()=>T.b22, gate:()=>S.ordered, hint:'Put the five steps in the right order to continue.',
+  render(r){
+    if(!puz || !S.ordered){
+      let ids = [0,1,2,3,4];
+      do { ids.sort(() => Math.random() - .5); } while(ids.every((v,i) => v === i));
+      puz = {tray:ids, slots:[null,null,null,null,null], sel:null};
+    }
+    r.innerHTML = `<span class="mod">Module 2 · Challenge</span><h2>Put the punched card steps in order</h2>
+      <p class="lead" style="margin-top:0">Click a puzzle piece to read it. Then click a numbered spot to place it.</p>
+      <div class="panel"><b>Puzzle pieces</b><div class="tray" id="tray"></div></div>
+      <div class="panel" style="margin-top:14px"><b>Your order (1 = first)</b><div class="slots" id="slots"></div>
+      <div class="form"><button class="abtn" id="chk" disabled>Check my order</button></div><p class="fb" id="fb" aria-live="polite"></p></div>`;
+    drawPuzzle();
+    $('#chk').onclick = checkPuzzle;
+  }});
+function pieceHTML(id, showDesc){
+  const s = STEPS[id];
+  return showDesc ? `<span class="ic">${s.icon}</span><span>${s.desc}</span>` : `<span class="ic">${s.icon}</span><span class="small">Click to read</span>`;
+}
+function drawPuzzle(){
+  const tray = $('#tray'), slots = $('#slots'); if(!tray) return;
+  tray.innerHTML = ''; slots.innerHTML = '';
+  puz.tray.forEach(id => {
+    const b = document.createElement('button'); b.className = 'pz' + (puz.sel === id ? ' sel' : '');
+    b.innerHTML = pieceHTML(id, puz.sel === id); b.disabled = S.ordered;
+    b.setAttribute('aria-label', 'Puzzle piece: ' + STEPS[id].desc);
+    b.onclick = () => { puz.sel = puz.sel === id ? null : id; drawPuzzle(); };
+    tray.appendChild(b);
+  });
+  if(!puz.tray.length) tray.innerHTML = '<span class="ghosttxt">All pieces are placed.</span>';
+  puz.slots.forEach((id, i) => {
+    const b = document.createElement('button');
+    b.style.cssText = 'width:100%;font:inherit;color:inherit;';
+    b.className = 'slot'; b.disabled = S.ordered;
+    b.innerHTML = `<span class="num">${i+1}</span>` + (id !== null ? `<span class="pz" style="display:flex;flex-direction:column;align-items:center;gap:2px">${pieceHTML(id, true)}</span>` : '<span class="small">Place here</span>');
+    b.setAttribute('aria-label', `Spot ${i+1}` + (id !== null ? ': ' + STEPS[id].desc : ': empty'));
+    b.onclick = () => {
+      if(puz.sel !== null){
+        const old = puz.slots[i];
+        puz.tray = puz.tray.filter(x => x !== puz.sel); puz.slots[i] = puz.sel;
+        if(old !== null) puz.tray.push(old);
+        puz.sel = null;
+      } else if(id !== null){ puz.slots[i] = null; puz.tray.push(id); puz.sel = id; }
+      drawPuzzle();
+    };
+    slots.appendChild(b);
+  });
+  $('#chk').disabled = S.ordered || puz.slots.some(x => x === null);
+}
+function checkPuzzle(){
+  const bad = puz.slots.filter((id,i) => id !== i).length, fb = $('#fb');
+  document.querySelectorAll('#slots .slot').forEach((el,i) => el.classList.add(puz.slots[i] === i ? 'right' : 'wrong'));
+  if(!bad){
+    S.ordered = true; SFX.success(); drawPuzzle();
+    document.querySelectorAll('#slots .slot').forEach(el => el.classList.add('right'));
+    fb.className = 'fb ok'; fb.textContent = '🎉 Excellent job! Every step is in the right place. Click Next to continue.';
+    narrate('Excellent job! Click the next button to continue.'); updateNav();
+  } else {
+    SFX.wrong(); fb.className = 'fb bad';
+    fb.textContent = `${5-bad} of 5 are in the right place. Click a piece in a red spot to pick it up and try again.`;
+    narrate('Almost! Check the red spots and try again. You can click Back to watch the video again.');
+  }
+}
+
+// Module 3 objective
+SL.push({label:'Module 3', narr:()=>T.m3, gate:()=>true,
+  render(r){ r.innerHTML = `<div class="center"><span class="mod">Learning objective 3</span><h2>Module 3: The Borrowers</h2>
+    <div class="panel" style="max-width:760px;margin:20px auto"><p class="lead" style="margin:0">Explain how inventors draw inspiration from existing ideas to develop new innovations.</p></div>
+    <div style="width:180px;margin:auto">${jacquardSVG(true)}</div></div>`; }});
+
+// 3.1a
+SL.push({label:'Inventors (1)', narr:()=>T.b31a, gate:()=>S.clicked.has('falcon') && S.clicked.has('lovelace'), hint:'Click both inventors to continue.',
+  render(r){
+    r.innerHTML = `<span class="mod">Module 3 · Inventors</span><h2>Who borrowed the punched card idea?</h2>${timeline()}
+      <div class="portraits" id="pt"></div><div class="panel info" id="info" aria-live="polite">Click a portrait to learn about the inventor.</div>`;
+    const pt = $('#pt');
+    ['falcon','lovelace'].forEach(id => pt.appendChild(portraitBtn(id, (id, b) => {
+      S.clicked.add(id); pt.querySelectorAll('.portrait').forEach(x => x.classList.remove('active')); b.classList.add('active'); b.classList.add('seen');
+      const p = INV[id]; $('#info').innerHTML = `<span class="era">${p.era}</span><b>${p.name}.</b> ${p.text}`;
+      narrate(p.text); updateNav();
+    })));
+  }});
+
+// 3.1b
+SL.push({label:'Inventors (2)', delay:600, gate:()=>true,
+  narr(){
+    return [{text:INV.hollerith.text, on:()=>hi('hollerith')},{text:INV.ibm.text, on:()=>hi('ibm')},{text:CONCL, on:()=>hi('concl')}];
+  },
+  render(r){
+    r.innerHTML = `<span class="mod">Module 3 · Inventors</span><h2>Punched cards after Jacquard</h2>${timeline()}
+      <div class="cols"><div class="col" id="c-hollerith"><div class="portraits" id="p1"></div><div class="panel info"><span class="era">After Jacquard</span>${INV.hollerith.text}</div></div>
+      <div class="col" id="c-ibm"><div class="portraits" id="p2"></div><div class="panel info"><span class="era">After Jacquard</span>${INV.ibm.text}</div></div></div>
+      <div class="concl panel" id="concl"><b>Big idea:</b> ${CONCL}<div class="code">card 1: 1 0 1 1 0 0 1 0<br>card 2: 0 1 1 0 1 0 0 1<br>card 3: 1 1 0 0 1 1 0 0 …</div></div>`;
+    $('#p1').appendChild(portraitBtn('hollerith', () => { narrate(INV.hollerith.text); }));
+    $('#p2').appendChild(portraitBtn('ibm', () => { narrate(INV.ibm.text); }));
+  }});
+function hi(id){
+  document.querySelectorAll('.col').forEach(c => c.classList.remove('show'));
+  const c = document.getElementById('c-' + id); if(c) c.classList.add('show');
+  if(id === 'concl'){ document.querySelectorAll('.col').forEach(c => c.classList.add('show')); const x = $('#concl'); if(x) x.classList.add('show'); }
+}
+
+// 4 Closing
+SL.push({label:'Closing', delay:900, narr:()=>T.close, gate:()=>true,
+  render(r){
+    r.innerHTML = `<span class="mod">Closing</span>${doorScene(true, '<div class="banner" id="banner"><h3>★ Course Completed ★</h3><p style="margin:6px 0 0">Great work, <span id="cn"></span>! You explained weaving, punched cards, and how inventors borrow ideas.</p></div>')}`;
+    $('#cn').textContent = S.name || 'inventor';
+    store.set({idx:1, name:S.name});
+  },
+  after(){
+    const sc = $('#scene'); if(!sc) return;
+    SFX.thud(); sc.classList.remove('open');
+    later(() => { SFX.bell(); const b = $('#banner'); if(b) b.classList.add('show'); SFX.success(); }, 1500);
+  }});
+
+/* ============ NAVIGATION ============ */
+function slide(){ return SL[S.idx]; }
+function updateNav(){
+  const s = slide(), last = S.idx === SL.length - 1;
+  app.classList.toggle('title', S.idx === 0);
+  const open = S.unlock || s.gate();
+  $('#btnBack').disabled = S.idx <= 1;
+  $('#btnNext').disabled = !last && !open;
+  $('#btnNext').textContent = last ? 'Restart' : 'Next';
+  $('#hint').textContent = (!open && s.hint) ? '🔒 ' + s.hint : '';
+  const pct = Math.max(0, (S.idx - 1) / (SL.length - 2)) * 100;
+  $('#barfill').style.width = pct + '%';
+  $('#progtxt').textContent = `Page ${Math.max(S.idx,1)} of ${SL.length - 1}`;
+}
+function goTo(i){
+  stopNarr(); clearTimers();
+  document.querySelectorAll('.layer').forEach(l => l.remove());
+  document.querySelectorAll('.pulse').forEach(e => e.classList.remove('pulse'));
+  S.idx = i;
+  if(i > 0 && i < SL.length - 1) store.set({idx:i, name:S.name});
+  stage.innerHTML = '';
+  const s = slide(); s.render(stage);
+  updateNav(); window.scrollTo(0,0); stage.focus({preventScroll:true});
+  if(s.narr){
+    later(() => narrate(s.narr(), s.after ? () => s.after() : null), s.delay || 400);
+  }
+}
+$('#btnNext').onclick = () => { if(S.idx === SL.length - 1){ S.mathOk = false; S.name = ''; S.vocab = new Set(); S.clicked = new Set(); S.ordered = false; puz = null; goTo(0); } else goTo(S.idx + 1); };
+$('#btnBack').onclick = () => goTo(Math.max(1, S.idx - 1));
+$('#btnRep').onclick = () => { const s = slide(); if(s.narr) narrate(s.narr(), s.after ? () => s.after() : null); };
+$('#btnCC').onclick = () => { S.cc = !S.cc; $('#btnCC').setAttribute('aria-pressed', S.cc); app.classList.toggle('nocc', !S.cc); };
+$('#vol').oninput = e => { S.volume = e.target.value / 100; if(S.volume > 0) S.lastVol = S.volume; $('#btnVol').setAttribute('aria-pressed', S.volume > 0); };
+$('#btnVol').onclick = () => {
+  if(S.volume > 0){ S.lastVol = S.volume; S.volume = 0; } else S.volume = S.lastVol || .8;
+  $('#vol').value = S.volume * 100; $('#btnVol').setAttribute('aria-pressed', S.volume > 0);
+  if(S.volume === 0 && canSpeak()) speechSynthesis.cancel();
+};
+goTo(0);
+</script>
+</body>
+</html>
